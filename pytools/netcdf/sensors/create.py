@@ -107,7 +107,7 @@ def create_timeseries_file(output_directory, latitude, longitude, full_station_u
     # These are set by this script, we don't someone to be able to set them manually
     global_skips = ["time_coverage_start", "time_coverage_end", "time_coverage_duration", "time_coverage_resolution",
                     "featureType", "geospatial_vertical_positive", "geospatial_vertical_min", "geospatial_vertical_max",
-                    "geospatial_vertical_resolution", "Conventions"]
+                    "geospatial_vertical_resolution", "Conventions", "date_created"]
     for k, v in global_attributes.iteritems():
         if v is None:
             v = "None"
@@ -115,6 +115,7 @@ def create_timeseries_file(output_directory, latitude, longitude, full_station_u
             nc.setncattr(k, v)
 
     nc.setncattr("Conventions", "CF-1.6")
+    nc.setncattr("date_created", datetime.utcnow().strftime("%Y-%m-%dT%H:%M:00Z"))
 
     # Station name
     nc.createDimension("feature_type_instance", len(full_station_urn))
