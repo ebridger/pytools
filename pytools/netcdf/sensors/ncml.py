@@ -2,12 +2,8 @@
 # coding=utf-8
 
 import os
-import sys
 import json
-import shutil
-import argparse
 from datetime import datetime
-from collections import OrderedDict
 
 import netCDF4
 from lxml import etree
@@ -54,13 +50,13 @@ def create_ncml(output_path, output_filename=None, target_file=None):
         sensor_urn = os.path.basename(root)
         starting   = datetime.utcfromtimestamp(min(starting))
         ending     = datetime.utcfromtimestamp(max(ending))
-        
-	outfile = output_filename
+
+        outfile = output_filename
         if outfile is None:
             outfile = "%s.ncml" % sensor_urn
 
         with open(os.path.join(root, outfile), "w") as ncml:
-            ncml.write(get_ncml_text(root, sensor_urn, starting, ending))
+            ncml.write(get_ncml_text(root, sensor_urn, starting, ending, target_file))
             ncml_files.append(os.path.join(root, outfile))
             logger.info("Finished writing: %s" % os.path.join(root, outfile))
 
@@ -69,54 +65,9 @@ def create_ncml(output_path, output_filename=None, target_file=None):
         ncmlout.write(json.dumps(ncml_files))
 
 
-def get_ncml_text(path, sensor_urn, starting, ending):
+def get_ncml_text(path, sensor_urn, starting, ending, target_file):
 
-    duration = "P%sS" % unicode(int(round((ending - starting).total_seconds())))
-    station_urn = ":".join(sensor_urn.replace("sensor", "station").split(":")[0:-1])
-    fillvars = { 'sensor_urn'   : sensor_urn,
-                 'station_urn'  : station_urn,
-                 'station_uid'  : station_urn.split(":")[-1],
-                 'naming_auth'  : station_urn.split(":")[3],
-                 'starting'     : starting.strftime("%Y-%m-%dT%H:%M:00Z"),
-                 'ending'       : ending.strftime("%Y-%m-%dT%H:%M:00Z"),
-                 'duration'     : duration,
-                 'now'          : datetime.utcnow().strftime("%Y-%m-%dT%H:%M:00Z"),
-                 'path'         : path }
-
-    text = """
-        <netcdf xmlns="http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2" location="merged.nc">
-
-            <attribute name="id" value="%(station_uid)s" />
-            <attribute name="naming_authority" value="%(naming_auth)s" />
-            <attribute name="time_coverage_start" value="%(starting)s" />
-            <attribute name="time_coverage_end" value="%(ending)s" />
-            <attribute name="time_coverage_duration" value="%(duration)s" />
-            <attribute name="date_created" value="%(now)s" />
-
-            <variable name="time">
-                <attribute name="calendar" value="gregorian" />
-            </variable>
-
-            <variable name="feature_type_instance">
-                <values>%(station_urn)s</values>
-            </variable>
-
-            <variable name="instrument">
-                <attribute name="long_name" type="string" value="%(sensor_urn)s" />
-            </variable>
-
-            <variable name="platform">
-                <attribute name="ioos_code" type="string" value="%(station_urn)s" />
-                <attribute name="short_name" type="string" value="%(station_uid)s" />
-                <attribute name="long_nane" type="string" value="%(station_urn)s" />
-            </variable>
-
-            <!--aggregation dimName="time" type="joinExisting" timeUnitsChange="false">
-                <scan location="." suffix=".nc"/>
-            </aggregation-->
-        </netcdf>
-
-        """ % fillvars
-
+    fillvars = { 'target_file' : target_file }
+    text = """<netcdf xmlns="http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2" location="%(target_file)s"></netcdf>""" % fillvars
     # Normalize XML by passing through lxml
     return etree.tostring(etree.XML(unicode(text)), pretty_print=True, xml_declaration=True, encoding='UTF-8')
